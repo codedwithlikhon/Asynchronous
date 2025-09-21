@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from main import run_browser_agent
-import asyncio
+import traceback
 
 app = FastAPI()
 
@@ -8,18 +8,20 @@ app = FastAPI()
 async def run_agent_endpoint():
     """
     An endpoint to trigger the browser agent.
+    It calls the agent function and returns its result directly.
     """
     try:
-        # Running the agent in a background task to avoid blocking the response
-        # This is a simple way, but for production, you might want a more robust
-        # task queue system like Celery.
-        asyncio.create_task(run_browser_agent())
-        return {
-            "status": "success",
-            "message": "Browser agent task started in the background."
-        }
+        result = await run_browser_agent()
+        return result
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        # This is a fallback for errors that might occur outside of run_browser_agent
+        print(f"Error in run_agent_endpoint: {e}")
+        print(traceback.format_exc())
+        return {
+            "status": "error",
+            "message": f"An unexpected error occurred in the API endpoint: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
 
 # The root endpoint can be a simple health check
 @app.get("/")

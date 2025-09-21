@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import traceback
 
 from browser_use import Agent, Browser
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -10,42 +11,39 @@ load_dotenv()
 async def run_browser_agent():
     """
     Initializes and runs the browser agent.
+    Returns a dictionary with the result.
     """
-    # --- LLM Configuration ---
-    # Make sure you have GOOGLE_API_KEY set in your .env file
-    # You can get a key from https://aistudio.google.com/app/apikey
-    llm = ChatGoogleGenerativeAI(model="gemini-pro")
+    try:
+        # --- LLM Configuration ---
+        # Make sure you have GOOGLE_API_KEY set in your .env file
+        # You can get a key from https://aistudio.google.com/app/apikey
+        llm = ChatGoogleGenerativeAI(model="gemini-pro")
 
 
-    # --- Browser Configuration ---
-    # This configuration connects to your existing Chrome browser.
-    # IMPORTANT: You may need to adjust the paths below to match your system.
-    #
-    # macOS:
-    # executable_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-    # user_data_dir='~/Library/Application Support/Google/Chrome'
-    #
-    # Windows:
-    # executable_path='C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-    # user_data_dir='%LOCALAPPDATA%\\Google\\Chrome\\User Data'
-    #
-    # Linux:
-    # executable_path='/usr/bin/google-chrome'
-    # user_data_dir='~/.config/google-chrome'
-
-    # NOTE: You need to fully close Chrome before running this script.
-    browser = Browser(
-        executable_path='/usr/bin/google-chrome',
-        user_data_dir='~/.config/google-chrome',
-        profile_directory='Default',
-    )
+        # --- Browser Configuration ---
+        # We use the Browser-Use cloud service, which is ideal for cloud environments like Vercel.
+        # This requires the BROWSER_USE_API_KEY environment variable to be set.
+        # You can get a key from https://cloud.browser-use.com
+        browser = Browser(use_cloud=True)
 
 
-    # --- Agent Configuration ---
-    agent = Agent(
-        task='Visit https://duckduckgo.com and search for "Google Gemini"',
-        browser=browser,
-        llm=llm,
-    )
+        # --- Agent Configuration ---
+        agent = Agent(
+            task='Visit https://duckduckgo.com and search for "Google Gemini"',
+            browser=browser,
+            llm=llm,
+        )
 
-    await agent.run()
+        # Assuming agent.run() returns something meaningful. If not, we'll just report success.
+        result = await agent.run()
+
+        return {"status": "success", "result": result if result else "Task completed."}
+
+    except Exception as e:
+        print(f"Error in run_browser_agent: {e}")
+        print(traceback.format_exc())
+        return {
+            "status": "error",
+            "message": str(e),
+            "traceback": traceback.format_exc()
+        }
